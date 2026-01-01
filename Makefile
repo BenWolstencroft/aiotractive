@@ -17,7 +17,7 @@ pylint:
 	pylint aiotractive
 
 dist:
-	python setup.py sdist bdist_wheel
+	python -m build
 	twine check dist/*
 
 .PHONY: black isort flake8 pylint lint format dist
