@@ -1,0 +1,12 @@
+{
+  "time": 1704067200,
+  "battery_level": 42,
+  "temperature_state": null,
+  "clip_mounted_state": null,
+  "_id": "test_6b3d1679",
+  "_type": "device_hw_report",
+  "_version": "SN6bb22acf",
+  "report_id": "id_7577e427",
+  "power_saving_zone_id": "id_902614ee",
+  "hw_status": null
+}
