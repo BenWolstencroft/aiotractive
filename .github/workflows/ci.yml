@@ -30,7 +30,7 @@ jobs:
           pipenv sync --dev
 
       - name: Run linters
-        run: pipenv run make
+        run: pipenv run make lint
 
   publish:
     name: Publish a Python distribution to PyPI

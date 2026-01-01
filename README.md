@@ -1,4 +1,4 @@
-## aiotractive
+﻿## aiotractive
 
 ![Continuous Integration](https://github.com/zhulik/aiotractive/workflows/Continuous%20Integration/badge.svg?branch=main)
 
@@ -125,6 +125,10 @@ The library raises the following exceptions:
 - `UnauthorizedError` - When authentication fails or token is invalid
 - `NotFoundError` - When the requested resource is not found (404)
 - `DisconnectedError` - When the event channel disconnects
+
+## Type Hints
+
+This library is fully typed and includes a `py.typed` marker for [PEP 561](https://peps.python.org/pep-0561/) compliance. Type checkers like `mypy` will recognize the inline type hints.
 
 ## Creating a development environment
 
