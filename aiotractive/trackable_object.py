@@ -1,22 +1,26 @@
-"""Representation of a Tractive trackable object (pet)."""
+"""TrackableObject data object for pets and other trackable entities."""
+
+from typing import Any
 
 from .data_object import DataObject
 
 
 class TrackableObject(DataObject):
-    """Representation of a Tractive trackable object (pet)."""
+    """Represents a trackable object (usually a pet) in Tractive."""
 
-    async def details(self):
-        """Get trackable object details."""
-        return await self._api.request(f"trackable_object/{self._id}")
+    async def details(self) -> dict[str, Any]:
+        """Get trackable object details including pet name and associated tracker ID."""
+        result: dict[str, Any] = await self._api.request(f"trackable_object/{self._id}")
+        return result
 
-    async def health_overview(self):
+    async def health_overview(self) -> dict[str, Any]:
         """Get health overview data including activity, sleep, rest, and health metrics.
 
         Returns health_overview data from the APS API endpoint.
         Replaces the deprecated wellness_overview message.
         """
-        return await self._api.request(
+        result: dict[str, Any] = await self._api.request(
             f"pet/{self._id}/health/overview",
             base_url=self._api.APS_API_URL,
         )
+        return result

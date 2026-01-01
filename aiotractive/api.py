@@ -5,7 +5,9 @@ import json
 import logging
 import random
 import time
+from collections.abc import Callable
 from http import HTTPStatus
+from typing import Any, cast
 
 import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
@@ -13,66 +15,105 @@ from yarl import URL
 
 from .exceptions import NotFoundError, TractiveError, UnauthorizedError
 
-CLIENT_ID = "625e533dc3c3b41c28a669f0"
+CLIENT_ID: str = "625e533dc3c3b41c28a669f0"
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class API:
-    """Client for the API handling auth, requests, retries, and error mapping."""
+    """Low-level HTTP client for Tractive API."""
 
-    API_URL = URL("https://graph.tractive.com/4/")
-    APS_API_URL = URL("https://aps-api.tractive.com/api/1/")
+    API_URL: URL = URL("https://graph.tractive.com/4/")
+    APS_API_URL: URL = URL("https://aps-api.tractive.com/api/1/")
 
-    DEFAULT_TIMEOUT = 10
+    DEFAULT_TIMEOUT: int = 10
 
-    TOKEN_URI = "auth/token"  # noqa: S105
+    TOKEN_URI: str = "auth/token"  # noqa: S105
 
     def __init__(
         self,
-        login,
-        password,
-        client_id=CLIENT_ID,
-        timeout=DEFAULT_TIMEOUT,
-        loop=None,
-        session=None,
-        retry_count=3,
-        retry_delay=lambda attempt: 4**attempt + random.uniform(0, 3),  # noqa: S311
-    ):
-        """Initialize."""
+        login: str,
+        password: str,
+        client_id: str = CLIENT_ID,
+        timeout: int = DEFAULT_TIMEOUT,
+        loop: asyncio.AbstractEventLoop | None = None,
+        session: aiohttp.ClientSession | None = None,
+        retry_count: int = 3,
+        retry_delay: Callable[[int], float] = lambda attempt: 4**attempt
+        + random.uniform(0, 3),  # noqa: S311
+    ) -> None:
+        """Initialize the API client.
+
+        Args:
+            login: Tractive account email.
+            password: Tractive account password.
+            client_id: Client ID for API requests.
+            timeout: Request timeout in seconds.
+            loop: Event loop (deprecated, will be removed).
+            session: Optional aiohttp session to reuse.
+            retry_count: Number of retries on rate limit (429).
+            retry_delay: Function to calculate delay between retries.
+
+        """
         self._login = login
         self._password = password
         self._client_id = client_id
         self._timeout = timeout
 
-        self.session = session
-        self._close_session = False
+        self.session: aiohttp.ClientSession | None = session
+        self._close_session: bool = False
 
         if self.session is None:
             loop = loop or asyncio.get_event_loop()
             self.session = aiohttp.ClientSession(raise_for_status=True)
             self._close_session = True
 
-        self._user_credentials = None
-        self._auth_headers = None
+        self._user_credentials: dict[str, Any] | None = None
+        self._auth_headers: dict[str, str] | None = None
 
         self._retry_count = retry_count
         self._retry_delay = retry_delay
 
-    async def user_id(self):
-        """Get user ID."""
+    async def user_id(self) -> str:
+        """Get the authenticated user's ID."""
         await self.authenticate()
-        return self._user_credentials["user_id"]
+        assert self._user_credentials is not None
+        return cast("str", self._user_credentials["user_id"])
 
-    async def auth_headers(self):
-        """Get authentication headers."""
+    async def auth_headers(self) -> dict[str, str]:
+        """Get headers with authentication token."""
         await self.authenticate()
+        assert self._auth_headers is not None
         return {**self.base_headers(), **self._auth_headers}
 
-    async def request(self, *args, **kwargs):
-        """Perform request with error wrapping."""
+    async def request(
+        self,
+        uri: str,
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        method: str = "GET",
+        base_url: URL = API_URL,
+    ) -> Any:
+        """Perform request with error wrapping.
+
+        Args:
+            uri: API endpoint URI.
+            params: Query parameters.
+            data: Request body data.
+            method: HTTP method.
+            base_url: Base URL for the request.
+
+        Returns:
+            JSON response data or raw bytes.
+
+        Raises:
+            UnauthorizedError: On 401/403 responses.
+            NotFoundError: On 404 responses.
+            TractiveError: On other errors.
+
+        """
         try:
-            return await self.raw_request(*args, **kwargs)
+            return await self.raw_request(uri, params, data, method, base_url=base_url)
         except ClientResponseError as error:
             if error.status in [HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN]:
                 raise UnauthorizedError from error
@@ -84,15 +125,28 @@ class API:
 
     async def raw_request(
         self,
-        uri,
-        params=None,
-        data=None,
-        method="GET",
+        uri: str,
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        method: str = "GET",
         attempt: int = 1,
-        base_url=API_URL,
-    ):
-        """Perform request."""
-        async with self.session.request(
+        base_url: URL = API_URL,
+    ) -> Any:
+        """Perform raw HTTP request with retry logic.
+
+        Args:
+            uri: API endpoint URI.
+            params: Query parameters.
+            data: Request body data.
+            method: HTTP method.
+            attempt: Current retry attempt number.
+            base_url: Base URL for the request.
+
+        Returns:
+            JSON response data or raw bytes.
+
+        """
+        async with self.session.request(  # type: ignore[union-attr]
             method,
             base_url.join(URL(uri)).update_query(params),
             json=data,
@@ -123,8 +177,19 @@ class API:
                 return await response.json()
             return await response.read()
 
-    async def authenticate(self):
-        """Perform authentication."""
+    async def authenticate(self) -> dict[str, Any] | None:
+        """Perform authentication and cache credentials.
+
+        Credentials are cached and refreshed 1 hour before expiration.
+
+        Returns:
+            User credentials dict or None if authentication fails.
+
+        Raises:
+            UnauthorizedError: On invalid credentials.
+            TractiveError: On other errors.
+
+        """
         if (
             self._user_credentials is not None
             and self._user_credentials["expires_at"] - time.time() < 3600  # noqa: PLR2004
@@ -136,7 +201,7 @@ class API:
             return self._user_credentials
 
         try:
-            async with self.session.request(
+            async with self.session.request(  # type: ignore[union-attr]
                 "POST",
                 self.API_URL.join(URL(self.TOKEN_URI)),
                 data=json.dumps(
@@ -168,13 +233,15 @@ class API:
         except Exception as error:
             raise TractiveError from error
 
-    async def close(self):
+        return None
+
+    async def close(self) -> None:
         """Close the session."""
         if self.session and self._close_session:
             await self.session.close()
 
-    def base_headers(self):
-        """Get base headers."""
+    def base_headers(self) -> dict[str, str]:
+        """Get base headers for API requests."""
         return {
             "x-tractive-client": self._client_id,
             "content-type": "application/json;charset=UTF-8",

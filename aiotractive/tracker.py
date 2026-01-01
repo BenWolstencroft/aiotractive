@@ -1,57 +1,92 @@
-"""Representation of a Tractive tracker device."""
+"""Tracker data object for Tractive devices."""
+
+from typing import Any
 
 from .data_object import DataObject
 
 
 class Tracker(DataObject):
-    """Representation of a Tractive tracker device."""
+    """Represents a Tractive GPS tracker device."""
 
-    ACTIONS = {True: "on", False: "off"}
+    ACTIONS: dict[bool, str] = {True: "on", False: "off"}
 
-    async def details(self):
-        """Get tracker details."""
-        return await self._api.request(f"tracker/{self._id}")
+    async def details(self) -> dict[str, Any]:
+        """Get tracker details including capabilities, battery status, and charging state."""
+        result: dict[str, Any] = await self._api.request(f"tracker/{self._id}")
+        return result
 
-    async def hw_info(self):
-        """Get hardware info for the tracker."""
-        return await self._api.request(f"device_hw_report/{self._id}/")
+    async def hw_info(self) -> dict[str, Any]:
+        """Get hardware info including battery level, firmware version, and model."""
+        result: dict[str, Any] = await self._api.request(
+            f"device_hw_report/{self._id}/"
+        )
+        return result
 
-    async def pos_report(self):
-        """Get position report for the tracker."""
-        return await self._api.request(
+    async def pos_report(self) -> dict[str, Any]:
+        """Get current position report including coordinates, latitude, and speed."""
+        result: dict[str, Any] = await self._api.request(
             f"device_pos_report/{self._id}",
         )
+        return result
 
-    async def positions(self, time_from, time_to, fmt):
-        """Get positions for the tracker within a time range."""
+    async def positions(
+        self, time_from: float, time_to: float, fmt: str
+    ) -> dict[str, Any]:
+        """Get historical positions within a time range.
+
+        Args:
+            time_from: Start timestamp (Unix epoch).
+            time_to: End timestamp (Unix epoch).
+            fmt: Response format (e.g., 'json_segments').
+
+        Returns:
+            Position history data.
+
+        """
         url = f"tracker/{self._id}/positions"
         params = {
             "time_from": time_from,
             "time_to": time_to,
             "format": fmt,
         }
-        return await self._api.request(url, params=params)
+        result: dict[str, Any] = await self._api.request(url, params=params)
+        return result
 
-    async def set_buzzer_active(self, active):
-        """Enable or disable the buzzer on the tracker."""
+    async def set_buzzer_active(self, active: bool) -> dict[str, Any]:
+        """Control the tracker buzzer.
+
+        Args:
+            active: True to turn on, False to turn off.
+
+        """
         action = self.ACTIONS[active]
-
-        return await self._api.request(
+        result: dict[str, Any] = await self._api.request(
             f"tracker/{self._id}/command/buzzer_control/{action}",
         )
+        return result
 
-    async def set_led_active(self, active):
-        """Enable or disable the LED on the tracker."""
+    async def set_led_active(self, active: bool) -> dict[str, Any]:
+        """Control the tracker LED.
+
+        Args:
+            active: True to turn on, False to turn off.
+
+        """
         action = self.ACTIONS[active]
-
-        return await self._api.request(
+        result: dict[str, Any] = await self._api.request(
             f"tracker/{self._id}/command/led_control/{action}",
         )
+        return result
 
-    async def set_live_tracking_active(self, active):
-        """Enable or disable live tracking mode on the tracker."""
+    async def set_live_tracking_active(self, active: bool) -> dict[str, Any]:
+        """Control live tracking mode.
+
+        Args:
+            active: True to enable, False to disable.
+
+        """
         action = self.ACTIONS[active]
-
-        return await self._api.request(
+        result: dict[str, Any] = await self._api.request(
             f"tracker/{self._id}/command/live_tracking/{action}",
         )
+        return result
