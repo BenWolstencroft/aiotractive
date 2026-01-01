@@ -30,7 +30,10 @@ jobs:
           pipenv sync --dev
 
       - name: Run linters
-        run: pipenv run make
+        run: pipenv run make lint
+
+      - name: Run tests
+        run: pipenv run pytest tests/ -v --cov=aiotractive --cov-report=term-missing
 
   publish:
     name: Publish a Python distribution to PyPI
