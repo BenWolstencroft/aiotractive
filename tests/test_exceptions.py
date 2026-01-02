@@ -2,7 +2,12 @@
 
 import pytest
 
-from aiotractive.exceptions import DisconnectedError, NotFoundError, TractiveError, UnauthorizedError
+from aiotractive.exceptions import (
+    DisconnectedError,
+    NotFoundError,
+    TractiveError,
+    UnauthorizedError,
+)
 
 
 @pytest.mark.parametrize("exc_class", [UnauthorizedError, NotFoundError, DisconnectedError])
