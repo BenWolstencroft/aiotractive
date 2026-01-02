@@ -5,7 +5,7 @@ import json
 import time
 from asyncio.exceptions import TimeoutError as AIOTimeoutError
 from collections.abc import AsyncIterator
-from typing import Any
+from typing import Any, ClassVar
 
 import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
@@ -17,8 +17,8 @@ from .exceptions import DisconnectedError, TractiveError, UnauthorizedError
 class Channel:
     """Real-time event channel using long-polling with keep-alive monitoring."""
 
-    CHANNEL_URL: str = "https://channel.tractive.com/3/channel"
-    IGNORE_MESSAGES: list[str] = ["handshake", "keep-alive"]
+    CHANNEL_URL: ClassVar[str] = "https://channel.tractive.com/3/channel"
+    IGNORE_MESSAGES: ClassVar[list[str]] = ["handshake", "keep-alive"]
 
     KEEP_ALIVE_TIMEOUT: int = 60  # seconds
     CHECK_CONNECTION_TIME: int = 5  # seconds

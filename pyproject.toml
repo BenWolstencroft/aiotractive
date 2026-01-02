@@ -1,16 +1,18 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aiotractive"
+version = "0.7.0"
+dynamic = ["dependencies", "readme"]
+
 [tool.ruff]
 target-version = "py314"
 
 lint.select = ["ALL"]
 
 lint.ignore = [
-    "ANN001",   # Missing type annotation for function argument
-    "ANN002",   # Missing type annotation
-    "ANN003",   # Missing type annotation
-    "ANN201",   # Missing return type annotation for public function
-    "ANN202",   # Missing return type annotation for private function
-    "ANN204",   # Missing return type annotation for special method
-    "ANN401",   # Dynamically typed expressions (Any) are disallowed
     "COM812",   # Trailing comma missing
     "D203",     # 1 blank line required before class docstring
     "D213",     # Multi-line docstring summary should start at the second line
@@ -19,7 +21,6 @@ lint.ignore = [
     "EM101",    # Exception must not use a string literal, assign to variable first
     "FBT001",   # Boolean-typed positional argument in function definition
     "PLR0913",  # Too many arguments in function definition
-    "RUF012",   # Mutable class attributes should be annotated with typing.ClassVar
     "S101",     # Use of assert detected
     "TRY003",   # Avoid specifying long messages outside the exception class
     "TRY301",   # Abstract raise to an inner function
@@ -38,3 +39,6 @@ check_untyped_defs = true
 strict_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
+
+[tool.setuptools.package-data]
+aiotractive = ["py.typed"]

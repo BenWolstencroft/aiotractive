@@ -93,7 +93,7 @@ class API:
         data: dict[str, Any] | None = None,
         method: str = "GET",
         base_url: URL = API_URL,
-    ) -> Any:
+    ) -> dict[str, Any] | list[dict[str, Any]] | bytes:
         """Perform request with error wrapping.
 
         Args:
@@ -131,7 +131,7 @@ class API:
         method: str = "GET",
         attempt: int = 1,
         base_url: URL = API_URL,
-    ) -> Any:
+    ) -> dict[str, Any] | list[dict[str, Any]] | bytes:
         """Perform raw HTTP request with retry logic.
 
         Args:
@@ -174,7 +174,10 @@ class API:
                 "Content-Type" in response.headers
                 and "application/json" in response.headers["Content-Type"]
             ):
-                return await response.json()
+                return cast(
+                    "dict[str, Any] | list[dict[str, Any]]",
+                    await response.json(),
+                )
             return await response.read()
 
     async def authenticate(self) -> dict[str, Any] | None:

@@ -1,10 +1,13 @@
 """Entrypoint for the Tractive REST API."""
 
-from collections.abc import AsyncIterator
+import asyncio
+from collections.abc import AsyncIterator, Callable
 from types import TracebackType
-from typing import Any
+from typing import Any, cast
 
-from .api import API
+import aiohttp
+
+from .api import API, CLIENT_ID
 from .channel import Channel
 from .trackable_object import TrackableObject
 from .tracker import Tracker
@@ -19,15 +22,42 @@ class Tractive:
             trackers = await client.trackers()
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        login: str,
+        password: str,
+        client_id: str = CLIENT_ID,
+        timeout: int = API.DEFAULT_TIMEOUT,
+        loop: asyncio.AbstractEventLoop | None = None,
+        session: aiohttp.ClientSession | None = None,
+        retry_count: int = 3,
+        retry_delay: Callable[[int], float] | None = None,
+    ) -> None:
         """Initialize the client.
 
         Args:
-            *args: Passed to API (login, password).
-            **kwargs: Passed to API (client_id, timeout, session, etc.).
+            login: Tractive account email.
+            password: Tractive account password.
+            client_id: Client ID for API requests.
+            timeout: Request timeout in seconds.
+            loop: Event loop (deprecated, will be removed).
+            session: Optional aiohttp session to reuse.
+            retry_count: Number of retries on rate limit (429).
+            retry_delay: Function to calculate delay between retries.
 
         """
-        self._api = API(*args, **kwargs)
+        kwargs: dict[str, Any] = {
+            "login": login,
+            "password": password,
+            "client_id": client_id,
+            "timeout": timeout,
+            "loop": loop,
+            "session": session,
+            "retry_count": retry_count,
+        }
+        if retry_delay is not None:
+            kwargs["retry_delay"] = retry_delay
+        self._api = API(**kwargs)
 
     async def authenticate(self) -> dict[str, Any] | None:
         """Authenticate with the Tractive API.
@@ -45,7 +75,10 @@ class Tractive:
             List of Tracker objects.
 
         """
-        trackers = await self._api.request(f"user/{await self._api.user_id()}/trackers")
+        trackers = cast(
+            "list[dict[str, Any]]",
+            await self._api.request(f"user/{await self._api.user_id()}/trackers"),
+        )
         return [Tracker(self._api, t) for t in trackers]
 
     def tracker(self, tracker_id: str) -> Tracker:
@@ -79,8 +112,11 @@ class Tractive:
             List of TrackableObject instances.
 
         """
-        objects = await self._api.request(
-            f"user/{await self._api.user_id()}/trackable_objects",
+        objects = cast(
+            "list[dict[str, Any]]",
+            await self._api.request(
+                f"user/{await self._api.user_id()}/trackable_objects",
+            ),
         )
         return [TrackableObject(self._api, t) for t in objects]
 
