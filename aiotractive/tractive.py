@@ -11,14 +11,18 @@ from .tracker import Tracker
 
 
 class Tractive:
+    """Asynchronous Python client for the Tractive REST API."""
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
         """Initialize the client."""
         self._api = API(*args, **kwargs)
 
     async def authenticate(self) -> dict[str, Any] | None:
+        """Authenticate the client."""
         return await self._api.authenticate()
 
     async def trackers(self) -> list[Tracker]:
+        """Get all trackers for the authenticated user."""
         trackers = cast(
             "list[dict[str, Any]]",
             await self._api.request(f"user/{await self._api.user_id()}/trackers"),
@@ -26,12 +30,15 @@ class Tractive:
         return [Tracker(self._api, t) for t in trackers]
 
     def tracker(self, tracker_id: str) -> Tracker:
+        """Get tracker by ID."""
         return Tracker(self._api, {"_id": tracker_id, "_type": "tracker"})
 
     def trackable_object(self, trackable_id: str) -> TrackableObject:
+        """Get trackable object by ID."""
         return TrackableObject(self._api, {"_id": trackable_id, "_type": "pet"})
 
     async def trackable_objects(self) -> list[TrackableObject]:
+        """Get all trackable objects for the authenticated user."""
         objects = cast(
             "list[dict[str, Any]]",
             await self._api.request(
@@ -41,6 +48,7 @@ class Tractive:
         return [TrackableObject(self._api, t) for t in objects]
 
     async def events(self) -> AsyncIterator[dict[str, Any]]:
+        """Listen for real-time events from the Tractive API."""
         async for event in Channel(self._api).listen():
             yield event
 

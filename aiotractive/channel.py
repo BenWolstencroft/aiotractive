@@ -1,3 +1,5 @@
+"""Channel for real-time events from the Tractive REST API."""
+
 import asyncio
 import json
 import time
@@ -13,6 +15,8 @@ from .exceptions import DisconnectedError, TractiveError, UnauthorizedError
 
 
 class Channel:
+    """Channel for real-time events from the Tractive REST API."""
+
     CHANNEL_URL: ClassVar[str] = "https://channel.tractive.com/3/channel"
     IGNORE_MESSAGES: ClassVar[list[str]] = ["handshake", "keep-alive"]
 
@@ -20,6 +24,7 @@ class Channel:
     CHECK_CONNECTION_TIME: int = 5  # seconds
 
     def __init__(self, api: API) -> None:
+        """Initialize the channel."""
         self._api = api
         self._last_keep_alive: float | None = None
         self._listen_task: asyncio.Task[None] | None = None
@@ -27,6 +32,7 @@ class Channel:
         self._queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
 
     async def listen(self) -> AsyncIterator[dict[str, Any]]:
+        """Listen for real-time events from the Tractive API."""
         self._check_connection_task = asyncio.create_task(self._check_connection())
         self._listen_task = asyncio.create_task(self._listen())
         while True:
@@ -81,8 +87,8 @@ class Channel:
                     if error.status in [401, 403]:
                         raise UnauthorizedError from error
                     raise TractiveError from error
-                except TractiveError as err:
-                    await self._queue.put({"type": "error", "error": err})
+                except TractiveError as error:
+                    await self._queue.put({"type": "error", "error": error})
                     return
 
             except asyncio.CancelledError as error:
@@ -92,8 +98,8 @@ class Channel:
             except Exception as error:  # noqa: BLE001
                 try:
                     raise TractiveError from error
-                except TractiveError as err:
-                    await self._queue.put({"type": "error", "error": err})
+                except TractiveError as error:
+                    await self._queue.put({"type": "error", "error": error})
                     return
 
     async def _check_connection(self) -> None:
