@@ -1,4 +1,4 @@
-﻿## aiotractive
+## aiotractive
 
 ![Continuous Integration](https://github.com/zhulik/aiotractive/workflows/Continuous%20Integration/badge.svg?branch=main)
 

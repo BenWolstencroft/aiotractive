@@ -7,7 +7,7 @@ import random
 import time
 from collections.abc import Callable
 from http import HTTPStatus
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
@@ -21,6 +21,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class API:
+    """Client for the API handling auth, requests, retries, and error mapping."""
+
     API_URL: URL = URL("https://graph.tractive.com/4/")
     APS_API_URL: URL = URL("https://aps-api.tractive.com/api/1/")
 
@@ -40,6 +42,7 @@ class API:
         retry_delay: Callable[[int], float] = lambda attempt: 4**attempt
         + random.uniform(0, 3),  # noqa: S311
     ) -> None:
+        """Initialize."""
         self._login = login
         self._password = password
         self._client_id = client_id
@@ -60,26 +63,27 @@ class API:
         self._retry_delay = retry_delay
 
     async def user_id(self) -> str:
+        """Get user ID."""
         await self.authenticate()
-        assert self._user_credentials is not None
-        return cast("str", self._user_credentials["user_id"])
+        if TYPE_CHECKING:
+            assert self._user_credentials is not None
+        return str(self._user_credentials["user_id"])
 
     async def auth_headers(self) -> dict[str, str]:
+        """Get authentication headers."""
         await self.authenticate()
-        assert self._auth_headers is not None
+        if TYPE_CHECKING:
+            assert self._auth_headers is not None
         return {**self.base_headers(), **self._auth_headers}
 
     async def request(
         self,
-        uri: str,
-        params: dict[str, Any] | None = None,
-        data: dict[str, Any] | None = None,
-        method: str = "GET",
-        base_url: URL = API_URL,
-    ) -> dict[str, Any] | list[dict[str, Any]] | bytes:
+        *args: Any,  # noqa: ANN401
+        **kwargs: Any,  # noqa: ANN401
+    ) -> Any:  # noqa: ANN401
         """Perform request with error wrapping."""
         try:
-            return await self.raw_request(uri, params, data, method, base_url=base_url)
+            return await self.raw_request(*args, **kwargs)
         except ClientResponseError as error:
             if error.status in [HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN]:
                 raise UnauthorizedError from error
@@ -97,7 +101,7 @@ class API:
         method: str = "GET",
         attempt: int = 1,
         base_url: URL = API_URL,
-    ) -> dict[str, Any] | list[dict[str, Any]] | bytes:
+    ) -> Any:  # noqa: ANN401
         """Perform request."""
         async with self.session.request(  # type: ignore[union-attr]
             method,
@@ -127,14 +131,11 @@ class API:
                 "Content-Type" in response.headers
                 and "application/json" in response.headers["Content-Type"]
             ):
-                return cast(
-                    "dict[str, Any] | list[dict[str, Any]]",
-                    await response.json(),
-                )
+                return await response.json()
             return await response.read()
 
     async def authenticate(self) -> dict[str, Any] | None:
-        """Perform authenticateion."""
+        """Perform authentication."""
         if (
             self._user_credentials is not None
             and self._user_credentials["expires_at"] - time.time() < 3600  # noqa: PLR2004
@@ -186,6 +187,7 @@ class API:
             await self.session.close()
 
     def base_headers(self) -> dict[str, str]:
+        """Get base headers."""
         return {
             "x-tractive-client": self._client_id,
             "content-type": "application/json;charset=UTF-8",
