@@ -1,15 +1,10 @@
-"""TrackableObject data object for pets and other trackable entities."""
-
 from typing import Any, cast
 
 from .data_object import DataObject
 
 
 class TrackableObject(DataObject):
-    """Represents a trackable object (usually a pet) in Tractive."""
-
     async def details(self) -> dict[str, Any]:
-        """Get trackable object details including pet name and associated tracker ID."""
         return cast(
             "dict[str, Any]", await self._api.request(f"trackable_object/{self._id}")
         )

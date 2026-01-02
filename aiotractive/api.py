@@ -21,8 +21,6 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class API:
-    """Low-level HTTP client for Tractive API."""
-
     API_URL: URL = URL("https://graph.tractive.com/4/")
     APS_API_URL: URL = URL("https://aps-api.tractive.com/api/1/")
 
@@ -42,19 +40,6 @@ class API:
         retry_delay: Callable[[int], float] = lambda attempt: 4**attempt
         + random.uniform(0, 3),  # noqa: S311
     ) -> None:
-        """Initialize the API client.
-
-        Args:
-            login: Tractive account email.
-            password: Tractive account password.
-            client_id: Client ID for API requests.
-            timeout: Request timeout in seconds.
-            loop: Event loop (deprecated, will be removed).
-            session: Optional aiohttp session to reuse.
-            retry_count: Number of retries on rate limit (429).
-            retry_delay: Function to calculate delay between retries.
-
-        """
         self._login = login
         self._password = password
         self._client_id = client_id
@@ -75,13 +60,11 @@ class API:
         self._retry_delay = retry_delay
 
     async def user_id(self) -> str:
-        """Get the authenticated user's ID."""
         await self.authenticate()
         assert self._user_credentials is not None
         return cast("str", self._user_credentials["user_id"])
 
     async def auth_headers(self) -> dict[str, str]:
-        """Get headers with authentication token."""
         await self.authenticate()
         assert self._auth_headers is not None
         return {**self.base_headers(), **self._auth_headers}
@@ -94,24 +77,7 @@ class API:
         method: str = "GET",
         base_url: URL = API_URL,
     ) -> dict[str, Any] | list[dict[str, Any]] | bytes:
-        """Perform request with error wrapping.
-
-        Args:
-            uri: API endpoint URI.
-            params: Query parameters.
-            data: Request body data.
-            method: HTTP method.
-            base_url: Base URL for the request.
-
-        Returns:
-            JSON response data or raw bytes.
-
-        Raises:
-            UnauthorizedError: On 401/403 responses.
-            NotFoundError: On 404 responses.
-            TractiveError: On other errors.
-
-        """
+        """Perform request with error wrapping."""
         try:
             return await self.raw_request(uri, params, data, method, base_url=base_url)
         except ClientResponseError as error:
@@ -132,20 +98,7 @@ class API:
         attempt: int = 1,
         base_url: URL = API_URL,
     ) -> dict[str, Any] | list[dict[str, Any]] | bytes:
-        """Perform raw HTTP request with retry logic.
-
-        Args:
-            uri: API endpoint URI.
-            params: Query parameters.
-            data: Request body data.
-            method: HTTP method.
-            attempt: Current retry attempt number.
-            base_url: Base URL for the request.
-
-        Returns:
-            JSON response data or raw bytes.
-
-        """
+        """Perform request."""
         async with self.session.request(  # type: ignore[union-attr]
             method,
             base_url.join(URL(uri)).update_query(params),
@@ -181,18 +134,7 @@ class API:
             return await response.read()
 
     async def authenticate(self) -> dict[str, Any] | None:
-        """Perform authentication and cache credentials.
-
-        Credentials are cached and refreshed 1 hour before expiration.
-
-        Returns:
-            User credentials dict or None if authentication fails.
-
-        Raises:
-            UnauthorizedError: On invalid credentials.
-            TractiveError: On other errors.
-
-        """
+        """Perform authenticateion."""
         if (
             self._user_credentials is not None
             and self._user_credentials["expires_at"] - time.time() < 3600  # noqa: PLR2004
@@ -244,7 +186,6 @@ class API:
             await self.session.close()
 
     def base_headers(self) -> dict[str, str]:
-        """Get base headers for API requests."""
         return {
             "x-tractive-client": self._client_id,
             "content-type": "application/json;charset=UTF-8",
