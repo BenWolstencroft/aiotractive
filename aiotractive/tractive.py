@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
-
-from typing_extensions import Self
-
-if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
-    from types import TracebackType
+from collections.abc import AsyncIterator
+from types import TracebackType
+from typing import Any
 
 from .api import API
 from .channel import Channel
@@ -29,9 +25,8 @@ class Tractive:
 
     async def trackers(self) -> list[Tracker]:
         """Get all trackers for the authenticated user."""
-        trackers = cast(
-            "list[dict[str, Any]]",
-            await self._api.request(f"user/{await self._api.user_id()}/trackers"),
+        trackers: list[dict[str, Any]] = await self._api.request(
+            f"user/{await self._api.user_id()}/trackers"
         )
         return [Tracker(self._api, t) for t in trackers]
 
@@ -45,13 +40,10 @@ class Tractive:
 
     async def trackable_objects(self) -> list[TrackableObject]:
         """Get all trackable objects for the authenticated user."""
-        objects = cast(
-            "list[dict[str, Any]]",
-            await self._api.request(
-                f"user/{await self._api.user_id()}/trackable_objects",
-            ),
+        trackable_objects: list[dict[str, Any]] = await self._api.request(
+            f"user/{await self._api.user_id()}/trackable_objects"
         )
-        return [TrackableObject(self._api, t) for t in objects]
+        return [TrackableObject(self._api, t) for t in trackable_objects]
 
     async def events(self) -> AsyncIterator[dict[str, Any]]:
         """Listen for real-time events from the Tractive API."""
@@ -62,7 +54,7 @@ class Tractive:
         """Close open client session."""
         await self._api.close()
 
-    async def __aenter__(self) -> Self:
+    async def __aenter__(self) -> Tractive:  # noqa: PYI034
         """Async enter."""
         return self
 

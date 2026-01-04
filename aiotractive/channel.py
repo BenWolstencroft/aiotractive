@@ -6,26 +6,24 @@ import asyncio
 import json
 import time
 from asyncio.exceptions import TimeoutError as AIOTimeoutError
-from typing import TYPE_CHECKING, Any, ClassVar
+from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
 
-if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
-
-    from .api import API
+from .api import API
 from .exceptions import DisconnectedError, TractiveError, UnauthorizedError
 
 
 class Channel:
     """Channel for real-time events from the Tractive REST API."""
 
-    CHANNEL_URL: ClassVar[str] = "https://channel.tractive.com/3/channel"
-    IGNORE_MESSAGES: ClassVar[list[str]] = ["handshake", "keep-alive"]
+    CHANNEL_URL = "https://channel.tractive.com/3/channel"
+    IGNORE_MESSAGES = ("handshake", "keep-alive")
 
-    KEEP_ALIVE_TIMEOUT: int = 60  # seconds
-    CHECK_CONNECTION_TIME: int = 5  # seconds
+    KEEP_ALIVE_TIMEOUT = 60  # seconds
+    CHECK_CONNECTION_TIME = 5  # seconds
 
     def __init__(self, api: API) -> None:
         """Initialize the channel."""
@@ -62,9 +60,11 @@ class Channel:
                 raise DisconnectedError from event["error"]
 
     async def _listen(self) -> None:
+        if TYPE_CHECKING:
+            assert self._api.session is not None
         while True:
             try:
-                async with self._api.session.request(  # type: ignore[union-attr]
+                async with self._api.session.request(
                     "POST",
                     self.CHANNEL_URL,
                     headers=await self._api.auth_headers(),

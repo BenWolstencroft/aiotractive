@@ -20,7 +20,6 @@ setup(
     install_requires=[
         "aiohttp>=3.13.0",
         "yarl>=1.21.0",
-        "typing_extensions>=4.0.0",
     ],
     packages=["aiotractive"],
     package_dir={"aiotractive": "aiotractive"},
@@ -38,6 +37,7 @@ setup(
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: 3.14",
+        "Typing :: Typed",
     ],
     python_requires=">=3.9",
 )

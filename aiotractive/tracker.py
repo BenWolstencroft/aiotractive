@@ -1,6 +1,6 @@
 """Representation of a Tractive tracker device."""
 
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar
 
 from .data_object import DataObject
 
@@ -12,20 +12,22 @@ class Tracker(DataObject):
 
     async def details(self) -> dict[str, Any]:
         """Get tracker details."""
-        return cast("dict[str, Any]", await self._api.request(f"tracker/{self._id}"))
+        details: dict[str, Any] = await self._api.request(f"tracker/{self._id}")
+        return details
 
     async def hw_info(self) -> dict[str, Any]:
         """Get hardware info for the tracker."""
-        return cast(
-            "dict[str, Any]", await self._api.request(f"device_hw_report/{self._id}/")
+        hw_info: dict[str, Any] = await self._api.request(
+            f"device_hw_report/{self._id}/"
         )
+        return hw_info
 
     async def pos_report(self) -> dict[str, Any]:
         """Get position report for the tracker."""
-        return cast(
-            "dict[str, Any]",
-            await self._api.request(f"device_pos_report/{self._id}"),
+        pos_report: dict[str, Any] = await self._api.request(
+            f"device_pos_report/{self._id}"
         )
+        return pos_report
 
     async def positions(
         self, time_from: float, time_to: float, fmt: str
@@ -37,34 +39,29 @@ class Tracker(DataObject):
             "time_to": time_to,
             "format": fmt,
         }
-        return cast("dict[str, Any]", await self._api.request(url, params=params))
+        positions: dict[str, Any] = await self._api.request(url, params=params)
+        return positions
 
     async def set_buzzer_active(self, active: bool) -> dict[str, Any]:
         """Enable or disable the buzzer on the tracker."""
         action = self.ACTIONS[active]
-        return cast(
-            "dict[str, Any]",
-            await self._api.request(
-                f"tracker/{self._id}/command/buzzer_control/{action}",
-            ),
+        result: dict[str, Any] = await self._api.request(
+            f"tracker/{self._id}/command/buzzer_control/{action}"
         )
+        return result
 
     async def set_led_active(self, active: bool) -> dict[str, Any]:
         """Enable or disable the LED on the tracker."""
         action = self.ACTIONS[active]
-        return cast(
-            "dict[str, Any]",
-            await self._api.request(
-                f"tracker/{self._id}/command/led_control/{action}",
-            ),
+        result: dict[str, Any] = await self._api.request(
+            f"tracker/{self._id}/command/led_control/{action}"
         )
+        return result
 
     async def set_live_tracking_active(self, active: bool) -> dict[str, Any]:
         """Enable or disable live tracking mode on the tracker."""
         action = self.ACTIONS[active]
-        return cast(
-            "dict[str, Any]",
-            await self._api.request(
-                f"tracker/{self._id}/command/live_tracking/{action}",
-            ),
+        result: dict[str, Any] = await self._api.request(
+            f"tracker/{self._id}/command/live_tracking/{action}"
         )
+        return result

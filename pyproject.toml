@@ -10,16 +10,18 @@ lint.ignore = [
     "EM101",    # Exception must not use a string literal, assign to variable first
     "FBT001",   # Boolean-typed positional argument in function definition
     "PLR0913",  # Too many arguments in function definition
+    "TC001",    # Move application import into a type-checking block
+    "TC003",    # Move standard library import into a type-checking block
     "TRY003",   # Avoid specifying long messages outside the exception class
     "TRY301",   # Abstract raise to an inner function
-    "UP035",    # Import from typing_extensions for Python 3.9 compatibility
 ]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 25
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.14"
+show_error_codes = true
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -28,3 +30,9 @@ check_untyped_defs = true
 strict_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+strict_equality = true
+warn_unreachable = true

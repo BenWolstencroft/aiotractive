@@ -7,11 +7,9 @@ import json
 import logging
 import random
 import time
+from collections.abc import Callable
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
@@ -19,7 +17,7 @@ from yarl import URL
 
 from .exceptions import NotFoundError, TractiveError, UnauthorizedError
 
-CLIENT_ID: str = "625e533dc3c3b41c28a669f0"
+CLIENT_ID = "625e533dc3c3b41c28a669f0"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,12 +25,12 @@ _LOGGER = logging.getLogger(__name__)
 class API:
     """Client for the API handling auth, requests, retries, and error mapping."""
 
-    API_URL: URL = URL("https://graph.tractive.com/4/")
-    APS_API_URL: URL = URL("https://aps-api.tractive.com/api/1/")
+    API_URL = URL("https://graph.tractive.com/4/")
+    APS_API_URL = URL("https://aps-api.tractive.com/api/1/")
 
-    DEFAULT_TIMEOUT: int = 10
+    DEFAULT_TIMEOUT = 10
 
-    TOKEN_URI: str = "auth/token"  # noqa: S105
+    TOKEN_URI = "auth/token"  # noqa: S105
 
     def __init__(
         self,
@@ -69,20 +67,19 @@ class API:
     async def user_id(self) -> str:
         """Get user ID."""
         await self.authenticate()
-        assert self._user_credentials is not None  # noqa: S101
-        return str(self._user_credentials["user_id"])
+        if TYPE_CHECKING:
+            assert self._user_credentials is not None
+        user_id: str = self._user_credentials["user_id"]
+        return user_id
 
     async def auth_headers(self) -> dict[str, str]:
         """Get authentication headers."""
         await self.authenticate()
-        assert self._auth_headers is not None  # noqa: S101
+        if TYPE_CHECKING:
+            assert self._auth_headers is not None
         return {**self.base_headers(), **self._auth_headers}
 
-    async def request(
-        self,
-        *args: Any,  # noqa: ANN401
-        **kwargs: Any,  # noqa: ANN401
-    ) -> Any:  # noqa: ANN401
+    async def request(self, *args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         """Perform request with error wrapping."""
         try:
             return await self.raw_request(*args, **kwargs)
@@ -105,7 +102,9 @@ class API:
         base_url: URL = API_URL,
     ) -> Any:  # noqa: ANN401
         """Perform request."""
-        async with self.session.request(  # type: ignore[union-attr]
+        if TYPE_CHECKING:
+            assert self.session is not None
+        async with self.session.request(
             method,
             base_url.join(URL(uri)).update_query(params),
             json=data,
@@ -148,8 +147,10 @@ class API:
         if self._user_credentials is not None:
             return self._user_credentials
 
+        if TYPE_CHECKING:
+            assert self.session is not None
         try:
-            async with self.session.request(  # type: ignore[union-attr]
+            async with self.session.request(
                 "POST",
                 self.API_URL.join(URL(self.TOKEN_URI)),
                 data=json.dumps(
