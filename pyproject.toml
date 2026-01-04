@@ -12,13 +12,14 @@ lint.ignore = [
     "PLR0913",  # Too many arguments in function definition
     "TRY003",   # Avoid specifying long messages outside the exception class
     "TRY301",   # Abstract raise to an inner function
+    "UP035",    # Import from typing_extensions for Python 3.9 compatibility
 ]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 25
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

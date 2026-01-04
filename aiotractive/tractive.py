@@ -1,8 +1,14 @@
 """Entrypoint for the Tractive REST API."""
 
-from collections.abc import AsyncIterator
-from types import TracebackType
-from typing import Any, cast
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, cast
+
+from typing_extensions import Self
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+    from types import TracebackType
 
 from .api import API
 from .channel import Channel
@@ -56,7 +62,7 @@ class Tractive:
         """Close open client session."""
         await self._api.close()
 
-    async def __aenter__(self) -> "Tractive":
+    async def __aenter__(self) -> Self:
         """Async enter."""
         return self
 

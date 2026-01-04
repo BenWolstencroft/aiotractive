@@ -1,16 +1,20 @@
 """Channel for real-time events from the Tractive REST API."""
 
+from __future__ import annotations
+
 import asyncio
 import json
 import time
 from asyncio.exceptions import TimeoutError as AIOTimeoutError
-from collections.abc import AsyncIterator
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
 
-from .api import API
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+    from .api import API
 from .exceptions import DisconnectedError, TractiveError, UnauthorizedError
 
 

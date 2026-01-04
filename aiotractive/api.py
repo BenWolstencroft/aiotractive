@@ -1,13 +1,17 @@
 """Low level client for the Tractive REST API."""
 
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
 import random
 import time
-from collections.abc import Callable
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
@@ -65,15 +69,13 @@ class API:
     async def user_id(self) -> str:
         """Get user ID."""
         await self.authenticate()
-        if TYPE_CHECKING:
-            assert self._user_credentials is not None
+        assert self._user_credentials is not None  # noqa: S101
         return str(self._user_credentials["user_id"])
 
     async def auth_headers(self) -> dict[str, str]:
         """Get authentication headers."""
         await self.authenticate()
-        if TYPE_CHECKING:
-            assert self._auth_headers is not None
+        assert self._auth_headers is not None  # noqa: S101
         return {**self.base_headers(), **self._auth_headers}
 
     async def request(
@@ -108,7 +110,7 @@ class API:
             base_url.join(URL(uri)).update_query(params),
             json=data,
             headers=await self.auth_headers(),
-            timeout=self._timeout,
+            timeout=aiohttp.ClientTimeout(total=self._timeout),
         ) as response:
             _LOGGER.debug("Request %s, status: %s", response.url, response.status)
 
@@ -158,7 +160,7 @@ class API:
                     }
                 ),
                 headers=self.base_headers(),
-                timeout=self._timeout,
+                timeout=aiohttp.ClientTimeout(total=self._timeout),
             ) as response:
                 if (
                     "Content-Type" in response.headers
