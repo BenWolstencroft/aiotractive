@@ -1,5 +1,8 @@
 lint: ruff mypy
 
+test:
+	pytest tests/ -v --cov=aiotractive --cov-report=term-missing
+
 format:
 	ruff format .
 
@@ -9,9 +12,6 @@ ruff:
 
 mypy:
 	mypy aiotractive
-
-test:
-	pytest tests --cov=aiotractive --cov-report=term-missing
 
 dist:
 	python setup.py sdist bdist_wheel
