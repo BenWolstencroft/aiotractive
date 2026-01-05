@@ -7,6 +7,7 @@ import json
 import time
 from asyncio.exceptions import TimeoutError as AIOTimeoutError
 from collections.abc import AsyncIterator
+from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
@@ -87,24 +88,24 @@ class Channel:
             except AIOTimeoutError:
                 continue
             except ClientResponseError as error:
-                try:
-                    if error.status in [401, 403]:
-                        raise UnauthorizedError from error
-                    raise TractiveError from error
-                except TractiveError as error:
-                    await self._queue.put({"type": "error", "error": error})
-                    return
+                exc: TractiveError
+                if error.status in (HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN):
+                    exc = UnauthorizedError(str(error))
+                else:
+                    exc = TractiveError(str(error))
+                exc.__cause__ = error
+                await self._queue.put({"type": "error", "error": exc})
+                return
 
             except asyncio.CancelledError as error:
                 await self._queue.put({"type": "cancelled", "error": error})
                 return
 
             except Exception as error:  # noqa: BLE001
-                try:
-                    raise TractiveError from error
-                except TractiveError as error:
-                    await self._queue.put({"type": "error", "error": error})
-                    return
+                exc = TractiveError(str(error))
+                exc.__cause__ = error
+                await self._queue.put({"type": "error", "error": exc})
+                return
 
     async def _check_connection(self) -> None:
         try:
