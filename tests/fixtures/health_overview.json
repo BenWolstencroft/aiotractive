@@ -1,0 +1,34 @@
+{
+  "petId": "test_a96d8e9c",
+  "activityDataSyncedAt": "2024-01-01T00:00:00.000Z",
+  "activity": {
+    "minutesActive": 418,
+    "minutesGoal": 220
+  },
+  "rest": null,
+  "sleep": {
+    "minutesDaySleep": 237,
+    "minutesNightSleep": 390,
+    "minutesCalm": 50
+  },
+  "bark": null,
+  "restingHeartRate": {
+    "status": "NORMAL",
+    "dayOffset": 0
+  },
+  "restingRespiratoryRate": {
+    "status": "NORMAL",
+    "dayOffset": 0
+  },
+  "healthAlerts": {
+    "unseenCount": 0
+  },
+  "associatedData": [
+    {
+      "type": "WEEKLY_REPORT"
+    },
+    {
+      "type": "HEALTH_WEEKLY_REPORT"
+    }
+  ]
+}
