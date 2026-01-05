@@ -1,0 +1,28 @@
+[
+  [
+    {
+      "time": 1704067200,
+      "latlong": [
+        51.5074,
+        -0.1278
+      ],
+      "alt": 149,
+      "speed": null,
+      "course": null,
+      "pos_uncertainty": 30,
+      "sensor_used": "KNOWN_WIFI"
+    },
+    {
+      "time": 1704067260,
+      "latlong": [
+        51.5075,
+        -0.1279
+      ],
+      "alt": 150,
+      "speed": null,
+      "course": null,
+      "pos_uncertainty": 25,
+      "sensor_used": "KNOWN_WIFI"
+    }
+  ]
+]

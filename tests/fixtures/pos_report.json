@@ -1,0 +1,19 @@
+{
+  "time": 1704067200,
+  "time_rcvd": 1767295754,
+  "pos_status": null,
+  "latlong": [
+    51.5074,
+    -0.1278
+  ],
+  "speed": null,
+  "pos_uncertainty": 30,
+  "_id": "test_6b3d1679",
+  "_type": "device_pos_report",
+  "_version": "SNa3d67380",
+  "altitude": 149,
+  "report_id": "id_1e85b739",
+  "sensor_used": "KNOWN_WIFI",
+  "nearby_user_id": null,
+  "power_saving_zone_id": "id_902614ee"
+}
