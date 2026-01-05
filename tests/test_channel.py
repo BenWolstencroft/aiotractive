@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from asyncio.exceptions import TimeoutError as AIOTimeoutError
 from http import HTTPStatus
 from typing import Any
@@ -266,3 +267,125 @@ async def test_listen_exception(channel: Channel, mock_api: MagicMock) -> None:
     assert event["type"] == "error"
     assert isinstance(event["error"], TractiveError)
     assert event["error"].__cause__ is exc
+
+
+async def test_listen_forbidden_403(channel: Channel, mock_api: MagicMock) -> None:
+    """Test that _listen handles 403 Forbidden as UnauthorizedError."""
+    exc = ClientResponseError(
+        request_info=MagicMock(),
+        history=(),
+        status=HTTPStatus.FORBIDDEN,
+        message="Forbidden",
+    )
+    mock_api.session.request.side_effect = exc
+
+    task = asyncio.create_task(channel._listen())
+    await asyncio.sleep(0.1)
+    task.cancel()
+
+    events = []
+    while not channel._queue.empty():
+        events.append(await channel._queue.get())
+
+    assert events
+    assert len(events) == 1
+    event = events[0]
+    assert event["type"] == "error"
+    assert isinstance(event["error"], UnauthorizedError)
+    assert event["error"].__cause__ is exc
+
+
+def test_channel_initial_state(channel: Channel) -> None:
+    """Test that Channel initializes with correct default state."""
+    assert channel._last_keep_alive is None
+    assert channel._listen_task is None
+    assert channel._check_connection_task is None
+    assert channel._queue.empty()
+
+
+async def test_check_connection_cancels_listen_on_timeout(
+    channel: Channel,
+) -> None:
+    """Test that _check_connection cancels _listen_task when keep-alive times out."""
+    # Set last keep-alive to a time older than timeout
+    channel._last_keep_alive = 0  # Epoch time, definitely timed out
+
+    # Create a mock listen task
+    listen_task = asyncio.create_task(asyncio.sleep(10))
+    channel._listen_task = listen_task
+
+    # Run check_connection - it should detect timeout and cancel listen_task
+    check_task = asyncio.create_task(channel._check_connection())
+    await asyncio.sleep(0.1)
+
+    # The check should have returned after cancelling listen_task
+    assert check_task.done() or listen_task.cancelled()
+
+    # Cleanup
+    if not check_task.done():
+        check_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await check_task
+    if not listen_task.done():
+        listen_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await listen_task
+
+
+async def test_check_connection_handles_cancel(channel: Channel) -> None:
+    """Test that _check_connection handles CancelledError gracefully."""
+    task = asyncio.create_task(channel._check_connection())
+    await asyncio.sleep(0.1)
+
+    task.cancel()
+
+    # Should not raise - gracefully handles cancellation
+    with contextlib.suppress(asyncio.CancelledError):
+        await task
+
+
+async def test_listen_public_yields_events(
+    channel: Channel,
+    mock_api: MagicMock,
+) -> None:
+    """Test that listen() public method yields events from the queue."""
+    event_data = b'{"message": "tracker_status", "data": {"id": "123"}}'
+    mock_response = create_mock_response([event_data])
+
+    mock_context = AsyncMock()
+    mock_context.__aenter__.return_value = mock_response
+    mock_api.session.request.return_value = mock_context
+
+    received_events = []
+    async for event in channel.listen():
+        received_events.append(event)
+        if len(received_events) >= 1:
+            # Cancel the tasks to exit the loop
+            if channel._check_connection_task:
+                channel._check_connection_task.cancel()
+            if channel._listen_task:
+                channel._listen_task.cancel()
+            break
+
+    assert len(received_events) == 1
+    assert received_events[0]["message"] == "tracker_status"
+
+
+async def test_listen_public_raises_on_error(
+    channel: Channel,
+    mock_api: MagicMock,
+) -> None:
+    """Test that listen() raises exception when error event is received."""
+    exc = ClientResponseError(
+        request_info=MagicMock(),
+        history=(),
+        status=HTTPStatus.INTERNAL_SERVER_ERROR,
+        message="Server error",
+    )
+    mock_api.session.request.side_effect = exc
+
+    with pytest.raises(TractiveError) as exc_info:
+        async for _ in channel.listen():
+            pass
+
+    assert exc_info.value.__cause__ is exc
