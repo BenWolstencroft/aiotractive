@@ -17,7 +17,10 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/zhulik/aiotractive",
     license="The MIT License",
-    install_requires=["aiohttp>=3.13.0", "yarl>=1.21.0"],
+    install_requires=[
+        "aiohttp>=3.13.0",
+        "yarl>=1.21.0",
+    ],
     packages=["aiotractive"],
     package_dir={"aiotractive": "aiotractive"},
     include_package_data=True,
@@ -34,6 +37,7 @@ setup(
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: 3.14",
+        "Typing :: Typed",
     ],
     python_requires=">=3.9",
 )

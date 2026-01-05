@@ -1,11 +1,15 @@
 """Low level client for the Tractive REST API."""
 
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
 import random
 import time
+from collections.abc import Callable
 from http import HTTPStatus
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
@@ -30,46 +34,52 @@ class API:
 
     def __init__(
         self,
-        login,
-        password,
-        client_id=CLIENT_ID,
-        timeout=DEFAULT_TIMEOUT,
-        loop=None,
-        session=None,
-        retry_count=3,
-        retry_delay=lambda attempt: 4**attempt + random.uniform(0, 3),  # noqa: S311
-    ):
+        login: str,
+        password: str,
+        client_id: str = CLIENT_ID,
+        timeout: int = DEFAULT_TIMEOUT,
+        loop: asyncio.AbstractEventLoop | None = None,
+        session: aiohttp.ClientSession | None = None,
+        retry_count: int = 3,
+        retry_delay: Callable[[int], float] = lambda attempt: 4**attempt
+        + random.uniform(0, 3),  # noqa: S311
+    ) -> None:
         """Initialize."""
         self._login = login
         self._password = password
         self._client_id = client_id
         self._timeout = timeout
 
-        self.session = session
-        self._close_session = False
+        self.session: aiohttp.ClientSession | None = session
+        self._close_session: bool = False
 
         if self.session is None:
             loop = loop or asyncio.get_event_loop()
             self.session = aiohttp.ClientSession(raise_for_status=True)
             self._close_session = True
 
-        self._user_credentials = None
-        self._auth_headers = None
+        self._user_credentials: dict[str, Any] | None = None
+        self._auth_headers: dict[str, str] | None = None
 
         self._retry_count = retry_count
         self._retry_delay = retry_delay
 
-    async def user_id(self):
+    async def user_id(self) -> str:
         """Get user ID."""
         await self.authenticate()
-        return self._user_credentials["user_id"]
+        if TYPE_CHECKING:
+            assert self._user_credentials is not None
+        user_id: str = self._user_credentials["user_id"]
+        return user_id
 
-    async def auth_headers(self):
+    async def auth_headers(self) -> dict[str, str]:
         """Get authentication headers."""
         await self.authenticate()
+        if TYPE_CHECKING:
+            assert self._auth_headers is not None
         return {**self.base_headers(), **self._auth_headers}
 
-    async def request(self, *args, **kwargs):
+    async def request(self, *args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         """Perform request with error wrapping."""
         try:
             return await self.raw_request(*args, **kwargs)
@@ -84,20 +94,22 @@ class API:
 
     async def raw_request(
         self,
-        uri,
-        params=None,
-        data=None,
-        method="GET",
+        uri: str,
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        method: str = "GET",
         attempt: int = 1,
-        base_url=API_URL,
-    ):
+        base_url: URL = API_URL,
+    ) -> Any:  # noqa: ANN401
         """Perform request."""
+        if TYPE_CHECKING:
+            assert self.session is not None
         async with self.session.request(
             method,
             base_url.join(URL(uri)).update_query(params),
             json=data,
             headers=await self.auth_headers(),
-            timeout=self._timeout,
+            timeout=aiohttp.ClientTimeout(total=self._timeout),
         ) as response:
             _LOGGER.debug("Request %s, status: %s", response.url, response.status)
 
@@ -123,7 +135,7 @@ class API:
                 return await response.json()
             return await response.read()
 
-    async def authenticate(self):
+    async def authenticate(self) -> dict[str, Any] | None:
         """Perform authentication."""
         if (
             self._user_credentials is not None
@@ -135,6 +147,8 @@ class API:
         if self._user_credentials is not None:
             return self._user_credentials
 
+        if TYPE_CHECKING:
+            assert self.session is not None
         try:
             async with self.session.request(
                 "POST",
@@ -147,7 +161,7 @@ class API:
                     }
                 ),
                 headers=self.base_headers(),
-                timeout=self._timeout,
+                timeout=aiohttp.ClientTimeout(total=self._timeout),
             ) as response:
                 if (
                     "Content-Type" in response.headers
@@ -168,12 +182,14 @@ class API:
         except Exception as error:
             raise TractiveError from error
 
-    async def close(self):
+        return None
+
+    async def close(self) -> None:
         """Close the session."""
         if self.session and self._close_session:
             await self.session.close()
 
-    def base_headers(self):
+    def base_headers(self) -> dict[str, str]:
         """Get base headers."""
         return {
             "x-tractive-client": self._client_id,

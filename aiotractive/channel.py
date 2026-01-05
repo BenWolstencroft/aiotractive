@@ -1,13 +1,18 @@
 """Channel for real-time events from the Tractive REST API."""
 
+from __future__ import annotations
+
 import asyncio
 import json
 import time
 from asyncio.exceptions import TimeoutError as AIOTimeoutError
+from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 from aiohttp.client_exceptions import ClientResponseError
 
+from .api import API
 from .exceptions import DisconnectedError, TractiveError, UnauthorizedError
 
 
@@ -15,20 +20,20 @@ class Channel:
     """Channel for real-time events from the Tractive REST API."""
 
     CHANNEL_URL = "https://channel.tractive.com/3/channel"
-    IGNORE_MESSAGES = ["handshake", "keep-alive"]
+    IGNORE_MESSAGES = ("handshake", "keep-alive")
 
     KEEP_ALIVE_TIMEOUT = 60  # seconds
     CHECK_CONNECTION_TIME = 5  # seconds
 
-    def __init__(self, api):
+    def __init__(self, api: API) -> None:
         """Initialize the channel."""
         self._api = api
-        self._last_keep_alive = None
-        self._listen_task = None
-        self._check_connection_task = None
-        self._queue = asyncio.Queue()
+        self._last_keep_alive: float | None = None
+        self._listen_task: asyncio.Task[None] | None = None
+        self._check_connection_task: asyncio.Task[None] | None = None
+        self._queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
 
-    async def listen(self):
+    async def listen(self) -> AsyncIterator[dict[str, Any]]:
         """Listen for real-time events from the Tractive API."""
         self._check_connection_task = asyncio.create_task(self._check_connection())
         self._listen_task = asyncio.create_task(self._listen())
@@ -54,7 +59,9 @@ class Channel:
                 await self._listen_task
                 raise DisconnectedError from event["error"]
 
-    async def _listen(self):
+    async def _listen(self) -> None:
+        if TYPE_CHECKING:
+            assert self._api.session is not None
         while True:
             try:
                 async with self._api.session.request(
@@ -99,13 +106,14 @@ class Channel:
                     await self._queue.put({"type": "error", "error": error})
                     return
 
-    async def _check_connection(self):
+    async def _check_connection(self) -> None:
         try:
             while True:
                 if self._last_keep_alive is not None and (
                     time.time() - self._last_keep_alive > self.KEEP_ALIVE_TIMEOUT
                 ):
-                    self._listen_task.cancel()
+                    if self._listen_task is not None:
+                        self._listen_task.cancel()
                     return
 
                 await asyncio.sleep(self.CHECK_CONNECTION_TIME)
